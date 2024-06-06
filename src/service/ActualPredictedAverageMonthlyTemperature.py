@@ -84,5 +84,5 @@ longitude = 20.98
 start_date = '2023-01-01'
 end_date = '2023-12-31'
 
-plotter = ActualPredictedAverageMonthlyTemperature(latitude, longitude, start_date, end_date)
-plotter.plot_temperature()
+# plotter = ActualPredictedAverageMonthlyTemperature(latitude, longitude, start_date, end_date)
+# plotter.plot_temperature()
