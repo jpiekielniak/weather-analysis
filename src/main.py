@@ -3,6 +3,8 @@ from tkinter import messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from service.ActualPredictedAverageMonthlyPrecipitation import ActualPredictedAverageMonthlyPrecipitation
 from service.ActualPredictedAverageMonthlyTemperature import ActualPredictedAverageMonthlyTemperature
+from service.ActualPredictedAverageMonthlyHumidity import ActualPredictedAverageMonthlyHumidity
+from service.ActualPredictedAverageMonthlyWindSpeed import ActualPredictedAverageMonthlyWindSpeed
 
 
 class WeatherApp:
@@ -58,6 +60,14 @@ class WeatherApp:
                                             command=self.show_temperature_plot)
         self.button_temperature.pack(fill=tk.X, pady=5)
 
+        self.button_humidity = tk.Button(self.button_frame, text="Show Humidity Plot",
+                                         command=self.show_humidity_plot)
+        self.button_humidity.pack(fill=tk.X, pady=5)
+
+        self.button_wind_speed = tk.Button(self.button_frame, text="Show Wind Speed Plot",
+                                           command=self.show_wind_speed_plot)
+        self.button_wind_speed.pack(fill=tk.X, pady=5)
+
         # Placeholder for matplotlib plots
         self.plot_frame = tk.Frame(root)
         self.plot_frame.pack(side=tk.TOP, fill="both", expand=True, padx=10, pady=10)
@@ -84,6 +94,32 @@ class WeatherApp:
 
             plotter = ActualPredictedAverageMonthlyTemperature(latitude, longitude, start_date, end_date)
             figure = plotter.plot_temperature()
+            self.display_plot(figure)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def show_humidity_plot(self):
+        try:
+            latitude = float(self.entry_latitude.get())
+            longitude = float(self.entry_longitude.get())
+            start_date = self.entry_start_date.get()
+            end_date = self.entry_end_date.get()
+
+            plotter = ActualPredictedAverageMonthlyHumidity(latitude, longitude, start_date, end_date)
+            figure = plotter.plot_humidity_histogram()
+            self.display_plot(figure)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def show_wind_speed_plot(self):
+        try:
+            latitude = float(self.entry_latitude.get())
+            longitude = float(self.entry_longitude.get())
+            start_date = self.entry_start_date.get()
+            end_date = self.entry_end_date.get()
+
+            plotter = ActualPredictedAverageMonthlyWindSpeed(latitude, longitude, start_date, end_date)
+            figure = plotter.plot_wind_speed_histogram()
             self.display_plot(figure)
         except Exception as e:
             messagebox.showerror("Error", str(e))
