@@ -51,7 +51,7 @@ class ActualPredictedAverageMonthlyTemperature:
         dates_new, actual_temps_smooth = interpolate_data(monthly_avg.index, monthly_avg['Temperature'])
         _, predicted_temps_smooth = interpolate_data(monthly_avg.index, predicted_temperatures)
 
-        fig, ax = plt.subplots(figsize=(14, 10))
+        figure, ax = plt.subplots(figsize=(14, 10))
 
         ax.plot(dates_new, actual_temps_smooth, color='black', label=self.actual_temperatures)
         ax.plot(dates_new, predicted_temps_smooth, color='green', label=self.predicted_temperatures,
@@ -71,18 +71,9 @@ class ActualPredictedAverageMonthlyTemperature:
 
         ax.text(0.5, -0.1, 'Month', ha='center', va='center', transform=ax.transAxes)
 
-        plt.title(
-            f'Actual vs Predicted Average Monthly Temperature in Tarnów ({datetime.datetime.strptime(self.start_date, "%Y-%m-%d").date().year})')
-        plt.xlabel('')
-        plt.ylabel('Temperature (°C)')
+        ax.set_title(f'Actual vs Predicted Average Monthly Temperature in Tarnów ({datetime.datetime.strptime(self.start_date, "%Y-%m-%d").date().year})')
+        ax.set_xlabel('')
+        ax.set_ylabel('Temperature (°C)')
         plt.tight_layout(rect=[0, 0, 1, 0.95])
-        plt.show()
 
-
-latitude = 50.01
-longitude = 20.98
-start_date = '2023-01-01'
-end_date = '2023-12-31'
-
-# plotter = ActualPredictedAverageMonthlyTemperature(latitude, longitude, start_date, end_date)
-# plotter.plot_temperature()
+        return figure

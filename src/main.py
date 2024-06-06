@@ -1,7 +1,10 @@
 import tkinter as tk
 from tkinter import messagebox
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from service.ActualPredictedAverageMonthlyPrecipitation import ActualPredictedAverageMonthlyPrecipitation
 from service.ActualPredictedAverageMonthlyTemperature import ActualPredictedAverageMonthlyTemperature
+
+
 class WeatherApp:
     def __init__(self, root):
         self.root = root
@@ -42,6 +45,10 @@ class WeatherApp:
         self.button_temperature = tk.Button(root, text="Show Temperature Plot", command=self.show_temperature_plot)
         self.button_temperature.grid(row=4, column=1, pady=10)
 
+        # Placeholder for matplotlib plots
+        self.plot_frame = tk.Frame(root)
+        self.plot_frame.grid(row=5, column=0, columnspan=2, pady=10)
+
     def show_precipitation_plot(self):
         try:
             latitude = float(self.entry_latitude.get())
@@ -50,7 +57,8 @@ class WeatherApp:
             end_date = self.entry_end_date.get()
 
             plotter = ActualPredictedAverageMonthlyPrecipitation(latitude, longitude, start_date, end_date)
-            plotter.plot_rainfall_histogram()
+            figure = plotter.plot_rainfall_histogram()
+            self.display_plot(figure)
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
@@ -62,9 +70,18 @@ class WeatherApp:
             end_date = self.entry_end_date.get()
 
             plotter = ActualPredictedAverageMonthlyTemperature(latitude, longitude, start_date, end_date)
-            plotter.plot_temperature()
+            figure = plotter.plot_temperature()
+            self.display_plot(figure)
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    def display_plot(self, figure):
+        for widget in self.plot_frame.winfo_children():
+            widget.destroy()
+
+        canvas = FigureCanvasTkAgg(figure, master=self.plot_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack()
 
 
 if __name__ == "__main__":
