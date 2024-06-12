@@ -48,6 +48,6 @@ Weather Analysis to projekt w Pythonie, który analizuje dane pogodowe, umożliw
 - `requirements.txt` - lista wymaganych bibliotek
 
 ## Podsumowanie
-- Projekt wykonany w ramach zaliczenia przedmiotu - Big data i hurtowanie danych II.
+- Projekt wykonany w ramach zaliczenia przedmiotu - Big data i hurtownie danych II.
 - Autorzy - Justyna Kurcz, Jakub Piekielniak, Seweryn Dutka, Arkadiusz Kupiec
 - Prowadzący - mgr inż. Tomasz Potempa 
