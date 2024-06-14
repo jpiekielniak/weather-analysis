@@ -2,6 +2,8 @@ import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+import itertools
 
 
 class ActualPredictedAverageMonthlyWindSpeed:
@@ -29,39 +31,76 @@ class ActualPredictedAverageMonthlyWindSpeed:
         df.set_index('Timestamp', inplace=True)
         return df
 
+    @staticmethod
+    def fit_sarima_model(time_series):
+        p = d = q = range(0, 2)
+        pdq = list(itertools.product(p, d, q))
+        seasonal_pdq = [(x[0], x[1], x[2], 12) for x in pdq]
+
+        best_aic = float("inf")
+        best_pdq = None
+        best_seasonal_pdq = None
+        best_model = None
+
+        for param in pdq:
+            for param_seasonal in seasonal_pdq:
+                try:
+                    temp_model = SARIMAX(time_series,
+                                         order=param,
+                                         seasonal_order=param_seasonal,
+                                         enforce_stationarity=False,
+                                         enforce_invertibility=False)
+                    temp_model_fit = temp_model.fit(disp=False)
+                    if temp_model_fit.aic < best_aic:
+                        best_aic = temp_model_fit.aic
+                        best_pdq = param
+                        best_seasonal_pdq = param_seasonal
+                        best_model = temp_model_fit
+                except:
+                    continue
+
+        return best_model
+
     def generate_predicted_data(self, actual_data):
-        # Use a moving average to predict wind speeds
-        window_size = 20  # 20-hour moving average
-        predicted_wind_speed = actual_data['WindSpeed'].rolling(window=window_size).mean()
-        predicted_df = actual_data.copy()
-        predicted_df['WindSpeed'] = predicted_wind_speed.fillna(method='bfill')  # Fill NaN values
+        monthly_avg_wind_speed = actual_data.resample('M').mean()
+
+        model_fit = self.fit_sarima_model(monthly_avg_wind_speed['WindSpeed'])
+
+        forecast_steps = 12
+        forecast = model_fit.get_forecast(steps=forecast_steps)
+        forecast_index = pd.date_range(start=monthly_avg_wind_speed.index[-1] + pd.DateOffset(months=1), periods=forecast_steps,
+                                       freq='M')
+        predicted_wind_speed = pd.Series(forecast.predicted_mean, index=forecast_index)
+
+        predicted_df = pd.concat([monthly_avg_wind_speed, predicted_wind_speed], axis=0)
+        predicted_df.columns = ['Actual Wind Speed', 'Predicted Wind Speed']
         return predicted_df
 
     def plot_wind_speed_histogram(self):
         df_actual = self.fetch_wind_speed_data()
         df_predicted = self.generate_predicted_data(df_actual)
 
-        monthly_actual_wind_speed = df_actual.resample('M').mean()
-        monthly_predicted_wind_speed = df_predicted.resample('M').mean()
-
         figure, ax = plt.subplots(figsize=(14, 8))
 
         width = 0.4
-        x = np.arange(len(monthly_actual_wind_speed.index))
+        x = np.arange(len(df_predicted.index))
 
-        ax.bar(x - width / 2,
-               monthly_actual_wind_speed['WindSpeed'],
+        actual_months = df_actual.resample('M').mean().index
+        predicted_months = df_predicted.index[len(actual_months):]
+
+        ax.bar(x[:len(actual_months)] - width / 2,
+               df_actual.resample('M').mean()['WindSpeed'],
                width=width, edgecolor='black', label=self.actual_wind_speed_label, alpha=0.6, color='darkgreen')
 
-        ax.bar(x + width / 2,
-               monthly_predicted_wind_speed['WindSpeed'],
+        ax.bar(x[len(actual_months):] + width / 2,
+               df_predicted['Predicted Wind Speed'].dropna(),
                width=width, edgecolor='black', label=self.predicted_wind_speed_label, alpha=0.6, color='lime')
 
         ax.set_title('Histogram of Actual and Predicted Monthly Wind Speed')
         ax.set_xlabel('Date')
         ax.set_ylabel('Monthly Wind Speed (m/s)')
         ax.set_xticks(ticks=x)
-        ax.set_xticklabels([date.strftime('%Y-%m') for date in monthly_actual_wind_speed.index], rotation=45)
+        ax.set_xticklabels([date.strftime('%Y-%m') for date in df_predicted.index], rotation=45)
         ax.legend()
         ax.grid(True)
         plt.tight_layout()
