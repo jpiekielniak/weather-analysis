@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 class ActualPredictedAverageMonthlyWindSpeed:
     def __init__(self, latitude, longitude, start_date, end_date):
         self.latitude = latitude
@@ -29,10 +30,11 @@ class ActualPredictedAverageMonthlyWindSpeed:
         return df
 
     def generate_predicted_data(self, actual_data):
-        np.random.seed(0)
-        predicted_wind_speed = actual_data['WindSpeed'] * np.random.uniform(0.8, 1.2, len(actual_data))
+        # Use a moving average to predict wind speeds
+        window_size = 20  # 20-hour moving average
+        predicted_wind_speed = actual_data['WindSpeed'].rolling(window=window_size).mean()
         predicted_df = actual_data.copy()
-        predicted_df['WindSpeed'] = predicted_wind_speed
+        predicted_df['WindSpeed'] = predicted_wind_speed.fillna(method='bfill')  # Fill NaN values
         return predicted_df
 
     def plot_wind_speed_histogram(self):

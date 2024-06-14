@@ -31,8 +31,8 @@ class ActualPredictedAverageMonthlyPrecipitation:
         return df
 
     def generate_predicted_data(self, actual_data):
-        np.random.seed(0)
-        predicted_precipitation = actual_data['Precipitation'] * np.random.uniform(0.8, 1.2, len(actual_data))
+        window_size = 7
+        predicted_precipitation = actual_data['Precipitation'].rolling(window=window_size, min_periods=1).mean()
         predicted_df = actual_data.copy()
         predicted_df['Precipitation'] = predicted_precipitation
         return predicted_df
