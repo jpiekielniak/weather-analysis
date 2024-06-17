@@ -7,119 +7,73 @@ from services.ActualPredictedAverageMonthlyHumidity import ActualPredictedAverag
 from services.ActualPredictedAverageMonthlyWindSpeed import ActualPredictedAverageMonthlyWindSpeed
 
 
+def create_action_button(parent, text, command):
+    button = tk.Button(parent, text=text, command=command)
+    button.pack(fill=tk.X, pady=5)
+
+
+def create_input_field(parent, label_text, default_value, row):
+    tk.Label(parent, text=label_text).grid(row=row, column=0, sticky='e')
+    entry = tk.Entry(parent)
+    entry.grid(row=row, column=1)
+    entry.insert(0, default_value)
+    return entry
+
+
 class WeatherApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Weather Data Visualization")
-
-        # Prefill dane
+        self.root.geometry("1024x768")
         self.default_latitude = 50.01
         self.default_longitude = 20.98
         self.default_start_date = '2023-01-01'
         self.default_end_date = '2023-12-31'
 
-        # Kontener na górne elementy
         self.top_frame = tk.Frame(root)
         self.top_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
 
-        # Kontener na pola wejściowe
-        self.input_frame = tk.Frame(self.top_frame)
-        self.input_frame.pack(side=tk.LEFT, padx=10, pady=10, anchor="nw")
+        self.input_frame = tk.LabelFrame(self.top_frame, text="Input Data", padx=10, pady=10)
+        self.input_frame.pack(side=tk.LEFT, padx=10, pady=10)
 
-        # Pola do wprowadzania danych
-        tk.Label(self.input_frame, text="Latitude:").grid(row=0, column=0, sticky='e')
-        self.entry_latitude = tk.Entry(self.input_frame)
-        self.entry_latitude.grid(row=0, column=1)
-        self.entry_latitude.insert(0, self.default_latitude)
+        self.entry_latitude = create_input_field(self.input_frame, "Latitude:", self.default_latitude, 0)
+        self.entry_longitude = create_input_field(self.input_frame, "Longitude:", self.default_longitude, 1)
+        self.entry_start_date = create_input_field(self.input_frame, "Start Date (YYYY-MM-DD):", self.default_start_date, 2)
+        self.entry_end_date = create_input_field(self.input_frame, "End Date (YYYY-MM-DD):", self.default_end_date, 3)
 
-        tk.Label(self.input_frame, text="Longitude:").grid(row=1, column=0, sticky='e')
-        self.entry_longitude = tk.Entry(self.input_frame)
-        self.entry_longitude.grid(row=1, column=1)
-        self.entry_longitude.insert(0, self.default_longitude)
+        self.button_frame = tk.LabelFrame(self.top_frame, text="Actions", padx=10, pady=10)
+        self.button_frame.pack(side=tk.LEFT, padx=10, pady=10)
 
-        tk.Label(self.input_frame, text="Start Date (YYYY-MM-DD):").grid(row=2, column=0, sticky='e')
-        self.entry_start_date = tk.Entry(self.input_frame)
-        self.entry_start_date.grid(row=2, column=1)
-        self.entry_start_date.insert(0, self.default_start_date)
+        create_action_button(self.button_frame, "Show Precipitation Plot", self.show_precipitation_plot)
+        create_action_button(self.button_frame, "Show Temperature Plot", self.show_temperature_plot)
+        create_action_button(self.button_frame, "Show Humidity Plot", self.show_humidity_plot)
+        create_action_button(self.button_frame, "Show Wind Speed Plot", self.show_wind_speed_plot)
 
-        tk.Label(self.input_frame, text="End Date (YYYY-MM-DD):").grid(row=3, column=0, sticky='e')
-        self.entry_end_date = tk.Entry(self.input_frame)
-        self.entry_end_date.grid(row=3, column=1)
-        self.entry_end_date.insert(0, self.default_end_date)
-
-        # Kontener na przyciski
-        self.button_frame = tk.Frame(self.top_frame)
-        self.button_frame.pack(side=tk.LEFT, padx=10, pady=10, anchor="nw")
-
-        # Przyciski do wyświetlania wykresów
-        self.button_precipitation = tk.Button(self.button_frame, text="Show Precipitation Plot",
-                                              command=self.show_precipitation_plot)
-        self.button_precipitation.pack(fill=tk.X, pady=5)
-
-        self.button_temperature = tk.Button(self.button_frame, text="Show Temperature Plot",
-                                            command=self.show_temperature_plot)
-        self.button_temperature.pack(fill=tk.X, pady=5)
-
-        self.button_humidity = tk.Button(self.button_frame, text="Show Humidity Plot",
-                                         command=self.show_humidity_plot)
-        self.button_humidity.pack(fill=tk.X, pady=5)
-
-        self.button_wind_speed = tk.Button(self.button_frame, text="Show Wind Speed Plot",
-                                           command=self.show_wind_speed_plot)
-        self.button_wind_speed.pack(fill=tk.X, pady=5)
-
-        # Placeholder for matplotlib plots
         self.plot_frame = tk.Frame(root)
         self.plot_frame.pack(side=tk.TOP, fill="both", expand=True, padx=10, pady=10)
 
     def show_precipitation_plot(self):
-        try:
-            latitude = float(self.entry_latitude.get())
-            longitude = float(self.entry_longitude.get())
-            start_date = self.entry_start_date.get()
-            end_date = self.entry_end_date.get()
-
-            plotter = ActualPredictedAverageMonthlyPrecipitation(latitude, longitude, start_date, end_date)
-            figure = plotter.plot_rainfall_histogram()
-            self.display_plot(figure)
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
+        self.show_plot(ActualPredictedAverageMonthlyPrecipitation, "plot_rainfall_histogram")
 
     def show_temperature_plot(self):
-        try:
-            latitude = float(self.entry_latitude.get())
-            longitude = float(self.entry_longitude.get())
-            start_date = self.entry_start_date.get()
-            end_date = self.entry_end_date.get()
-
-            plotter = ActualPredictedAverageMonthlyTemperature(latitude, longitude, start_date, end_date)
-            figure = plotter.plot_temperature()
-            self.display_plot(figure)
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
+        self.show_plot(ActualPredictedAverageMonthlyTemperature, "plot_temperature")
 
     def show_humidity_plot(self):
-        try:
-            latitude = float(self.entry_latitude.get())
-            longitude = float(self.entry_longitude.get())
-            start_date = self.entry_start_date.get()
-            end_date = self.entry_end_date.get()
-
-            plotter = ActualPredictedAverageMonthlyHumidity(latitude, longitude, start_date, end_date)
-            figure = plotter.plot_humidity_histogram()
-            self.display_plot(figure)
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
+        self.show_plot(ActualPredictedAverageMonthlyHumidity, "plot_humidity_histogram")
 
     def show_wind_speed_plot(self):
+        self.show_plot(ActualPredictedAverageMonthlyWindSpeed, "plot_wind_speed_histogram")
+
+    def show_plot(self, plotter_class, plot_method):
         try:
             latitude = float(self.entry_latitude.get())
             longitude = float(self.entry_longitude.get())
             start_date = self.entry_start_date.get()
             end_date = self.entry_end_date.get()
 
-            plotter = ActualPredictedAverageMonthlyWindSpeed(latitude, longitude, start_date, end_date)
-            figure = plotter.plot_wind_speed_histogram()
+            plotter = plotter_class(latitude, longitude, start_date, end_date)
+            plot_func = getattr(plotter, plot_method)
+            figure = plot_func()
             self.display_plot(figure)
         except Exception as e:
             messagebox.showerror("Error", str(e))

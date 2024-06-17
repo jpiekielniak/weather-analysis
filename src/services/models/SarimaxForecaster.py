@@ -1,35 +1,38 @@
+import datetime
+import pandas as pd
 from statsmodels.tsa.statespace.sarimax import SARIMAX
-import itertools
+from src.services.helpers.DateHelper import DateHelper
 
 
-class SARIMAXForecaster:
+class SARIMAXForecaster(DateHelper):
 
     @staticmethod
-    def fit_sarima_model(time_series):
-        p = d = q = range(0, 2)
-        pdq = list(itertools.product(p, d, q))
-        seasonal_pdq = [(x[0], x[1], x[2], 12) for x in pdq]
+    def fit_sarima_model(data):
+        model = SARIMAX(data, order=(1, 1, 1), seasonal_order=(1, 1, 1, 12))
+        model_fit = model.fit(disp=False)
+        return model_fit
 
-        best_aic = float("inf")
-        best_pdq = None
-        best_seasonal_pdq = None
-        best_model = None
+    @staticmethod
+    def forecast(model_fit, forecast_steps=12, start_date=datetime.datetime.now()):
+        forecast = model_fit.get_forecast(steps=forecast_steps)
+        forecast_index = pd.date_range(start=start_date, periods=forecast_steps, freq='M')
+        return pd.Series(forecast.predicted_mean, index=forecast_index)
 
-        for param in pdq:
-            for param_seasonal in seasonal_pdq:
-                try:
-                    temp_model = SARIMAX(time_series,
-                                         order=param,
-                                         seasonal_order=param_seasonal,
-                                         enforce_stationarity=False,
-                                         enforce_invertibility=False)
-                    temp_model_fit = temp_model.fit(disp=False)
-                    if temp_model_fit.aic < best_aic:
-                        best_aic = temp_model_fit.aic
-                        best_pdq = param
-                        best_seasonal_pdq = param_seasonal
-                        best_model = temp_model_fit
-                except:
-                    continue
+    @staticmethod
+    def generate_predicted_data_generic(fetch_data_func, value_column_name, start_date, end_date):
+        extended_start_date = DateHelper.get_extended_start_date(start_date, years=10)
 
-        return best_model
+        historical_end_date = (pd.to_datetime(start_date) - pd.DateOffset(years=1)).strftime('%Y-%m-%d')
+        extended_data = fetch_data_func(extended_start_date, historical_end_date)
+        monthly_mean = extended_data.resample('M').mean()
+
+        model_fit = SARIMAXForecaster.fit_sarima_model(monthly_mean[value_column_name])
+
+        forecast_start_date = pd.to_datetime(start_date)
+        forecast_end_date = pd.to_datetime(end_date) + pd.DateOffset(years=1)
+        forecast_steps = len(pd.date_range(start=forecast_start_date, end=forecast_end_date, freq='M'))
+
+        predicted_values = SARIMAXForecaster.forecast(model_fit=model_fit, forecast_steps=forecast_steps, start_date=forecast_start_date)
+        predicted_values.name = f'Predicted {value_column_name}'
+
+        return predicted_values

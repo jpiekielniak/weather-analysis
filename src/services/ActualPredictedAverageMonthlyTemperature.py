@@ -1,13 +1,12 @@
-import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from statsmodels.tsa.stattools import adfuller
 from src.services.api.WeatherDataFetcher import WeatherDataFetcher
+from src.services.helpers.DateHelper import DateHelper
 from src.services.models.SarimaxForecaster import SARIMAXForecaster
 
 
-class ActualPredictedAverageMonthlyTemperature(SARIMAXForecaster, WeatherDataFetcher):
+class ActualPredictedAverageMonthlyTemperature(SARIMAXForecaster, WeatherDataFetcher, DateHelper):
 
     def __init__(self, latitude, longitude, start_date, end_date):
         super().__init__()
@@ -18,14 +17,9 @@ class ActualPredictedAverageMonthlyTemperature(SARIMAXForecaster, WeatherDataFet
         self.actual_temperatures = 'Actual Average Monthly Temperature (°C)'
         self.predicted_temperatures = 'Predicted Average Monthly Temperature (°C)'
 
-    @staticmethod
-    def adf_test(series):
-        result = adfuller(series, autolag='AIC')
-        return result[1]
-
     def plot_temperature(self):
-        extended_start_date = (datetime.datetime.strptime(self.start_date, "%Y-%m-%d") - datetime.timedelta(
-            days=5 * 365)).strftime("%Y-%m-%d")
+        extended_start_date = self.get_extended_start_date(self.start_date)
+
         df_full = self.fetch_temperature_data(extended_start_date, self.end_date)
         monthly_avg = df_full.resample('M').mean()
 
@@ -38,12 +32,8 @@ class ActualPredictedAverageMonthlyTemperature(SARIMAXForecaster, WeatherDataFet
 
         model_fit = self.fit_sarima_model(monthly_avg['Temperature'])
 
-        forecast_steps = 12
-        forecast = model_fit.get_forecast(steps=forecast_steps)
-        forecast_index = pd.date_range(start=actual_monthly_avg.index[-1] + pd.DateOffset(months=1),
-                                       periods=forecast_steps,
-                                       freq='M')
-        predicted_temperatures = pd.Series(forecast.predicted_mean, index=forecast_index, name='Predicted Temperature')
+        start_date = actual_monthly_avg.index[-1] + pd.DateOffset(months=1)
+        predicted_temperatures = self.forecast(model_fit=model_fit, start_date=start_date)
 
         combined_df = pd.concat([actual_monthly_avg, predicted_temperatures], axis=1)
         combined_df.columns = ['Actual Temperature', 'Predicted Temperature']
@@ -67,8 +57,7 @@ class ActualPredictedAverageMonthlyTemperature(SARIMAXForecaster, WeatherDataFet
 
         ax.text(0.5, -0.1, 'Month', ha='center', va='center', transform=ax.transAxes)
 
-        ax.set_title(
-            f'Actual vs Predicted Average Monthly Temperature ({datetime.datetime.strptime(self.start_date, "%Y-%m-%d").date().year})')
+        ax.set_title(f'Actual vs Predicted Average Monthly Temperature')
         ax.set_xlabel('')
         ax.set_ylabel('Temperature (°C)')
         plt.tight_layout(rect=(0, 0, 1, 0.95))
