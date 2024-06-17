@@ -56,8 +56,8 @@ class ActualPredictedAverageMonthlyPrecipitation(SARIMAXForecaster, WeatherDataF
         return figure
 
     def combine_actual_predicted(self, actual_data, predicted_data, value_column_name):
-        actual_monthly_avg = actual_data.resample('M').mean() * 100
-        predicted_monthly_avg = pd.DataFrame(predicted_data, columns=[f'Predicted {value_column_name}']) * 100
+        actual_monthly_avg = actual_data.resample('M').mean() * 1000
+        predicted_monthly_avg = pd.DataFrame(predicted_data, columns=[f'Predicted {value_column_name}']) * 1000
 
         df_combined = pd.concat([actual_monthly_avg[value_column_name], predicted_monthly_avg], axis=1)
         df_combined.columns = [f'Actual {value_column_name}', f'Predicted {value_column_name}']
