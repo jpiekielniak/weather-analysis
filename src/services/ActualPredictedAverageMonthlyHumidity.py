@@ -26,7 +26,7 @@ class ActualPredictedAverageMonthlyHumidity(SARIMAXForecaster, WeatherDataFetche
         )
 
     def plot_humidity_histogram(self):
-        df_actual = self.fetch_humidity_data(self.start_date, self.end_date)
+        df_actual = self.fetch_humidity_data(start_date=self.start_date, end_date=self.end_date)
         combined_df = self.generate_predicted_data(df_actual)
 
         figure, ax = plt.subplots(figsize=(14, 8))

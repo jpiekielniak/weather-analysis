@@ -25,14 +25,16 @@ class SARIMAXForecaster(DateHelper):
         extended_start_date = DateHelper.get_extended_start_date(start_date)
 
         extended_data = fetch_data_func(extended_start_date, end_date)
-        monthly_avg = extended_data.resample('M').mean()
+        monthly_sum = extended_data.resample('M').sum()
 
-        model_fit = SARIMAXForecaster.fit_sarima_model(monthly_avg[value_column_name])
+        model_fit = SARIMAXForecaster.fit_sarima_model(monthly_sum[value_column_name])
 
-        actual_monthly_avg = actual_data.resample('M').mean()
-        start_date = actual_monthly_avg.index[-1] + pd.DateOffset(months=1)
-        predicted_values = SARIMAXForecaster.forecast(model_fit=model_fit, start_date=start_date)
+        forecast_start_date = actual_data.resample('M').sum().index[-1] + pd.DateOffset(months=1)
+        forecast_end_date = pd.to_datetime(end_date) + pd.DateOffset(months=12)
+        forecast_index = pd.date_range(start=forecast_start_date, end=forecast_end_date, freq='M')
 
-        predicted_df = pd.concat([actual_monthly_avg, predicted_values], axis=0)
-        predicted_df.columns = [f'Actual {value_column_name}', f'Predicted {value_column_name}']
-        return predicted_df
+        predicted_values = SARIMAXForecaster.forecast(model_fit=model_fit, start_date=forecast_start_date)
+        predicted_values.index = forecast_index
+        predicted_values.name = f'Predicted {value_column_name}'
+
+        return predicted_values
