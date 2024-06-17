@@ -30,8 +30,6 @@ class ActualPredictedAverageMonthlyHumidity(SARIMAXForecaster, WeatherDataFetche
 
         df_combined = self.combine_actual_predicted(df_actual, df_predicted, 'Humidity')
 
-        print("Combined DataFrame:\n", df_combined)
-
         figure, ax = plt.subplots(figsize=(14, 8))
 
         width = 0.4
@@ -59,11 +57,6 @@ class ActualPredictedAverageMonthlyHumidity(SARIMAXForecaster, WeatherDataFetche
     def combine_actual_predicted(self, actual_data, predicted_data, value_column_name):
         actual_monthly_avg = actual_data.resample('M').mean()
         predicted_monthly_avg = pd.DataFrame(predicted_data, columns=[f'Predicted {value_column_name}'])
-
-        # Debugging: Print actual and predicted data to ensure they are correctly processed
-        print("Actual Monthly Average:\n", actual_monthly_avg)
-        print("Predicted Monthly Average:\n", predicted_monthly_avg)
-
         df_combined = pd.concat([actual_monthly_avg[value_column_name], predicted_monthly_avg], axis=1)
         df_combined.columns = [f'Actual {value_column_name}', f'Predicted {value_column_name}']
         df_combined = df_combined[self.start_date:self.end_date]

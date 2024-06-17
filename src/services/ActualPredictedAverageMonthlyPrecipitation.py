@@ -17,9 +17,8 @@ class ActualPredictedAverageMonthlyPrecipitation(SARIMAXForecaster, WeatherDataF
         self.actual_precipitation_label = 'Actual Monthly Precipitation (mm)'
         self.predicted_precipitation_label = 'Predicted Monthly Precipitation (mm)'
 
-    def generate_predicted_data(self, actual_data):
+    def generate_predicted_data(self):
         return self.generate_predicted_data_generic(
-            actual_data=actual_data,
             fetch_data_func=self.fetch_rainfall_data,
             value_column_name='Precipitation',
             start_date=self.start_date,
@@ -28,7 +27,7 @@ class ActualPredictedAverageMonthlyPrecipitation(SARIMAXForecaster, WeatherDataF
 
     def plot_rainfall_histogram(self):
         df_actual = self.fetch_rainfall_data(self.start_date, self.end_date)
-        df_predicted = self.generate_predicted_data(df_actual)
+        df_predicted = self.generate_predicted_data()
 
         df_combined = self.combine_actual_predicted(df_actual, df_predicted, 'Precipitation')
 
@@ -42,7 +41,7 @@ class ActualPredictedAverageMonthlyPrecipitation(SARIMAXForecaster, WeatherDataF
                width=width, edgecolor='black', label=self.actual_precipitation_label, alpha=0.6, color='red')
 
         ax.bar(x + width / 2,
-               df_predicted,
+               df_combined['Predicted Precipitation'],
                width=width, edgecolor='black', label=self.predicted_precipitation_label, alpha=0.6, color='green')
 
         ax.set_title('Histogram of Actual and Predicted Monthly Precipitation')
@@ -57,8 +56,10 @@ class ActualPredictedAverageMonthlyPrecipitation(SARIMAXForecaster, WeatherDataF
         return figure
 
     def combine_actual_predicted(self, actual_data, predicted_data, value_column_name):
-        actual_monthly_sum = actual_data.resample('M').sum()
-        df_combined = pd.concat([actual_monthly_sum[value_column_name], predicted_data], axis=1)
+        actual_monthly_avg = actual_data.resample('M').mean()
+        predicted_monthly_avg = pd.DataFrame(predicted_data, columns=[f'Predicted {value_column_name}'])
+
+        df_combined = pd.concat([actual_monthly_avg[value_column_name], predicted_monthly_avg], axis=1)
         df_combined.columns = [f'Actual {value_column_name}', f'Predicted {value_column_name}']
         df_combined = df_combined[self.start_date:self.end_date]
         return df_combined

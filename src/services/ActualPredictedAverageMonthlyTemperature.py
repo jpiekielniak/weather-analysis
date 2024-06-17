@@ -1,4 +1,3 @@
-import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -58,8 +57,7 @@ class ActualPredictedAverageMonthlyTemperature(SARIMAXForecaster, WeatherDataFet
 
         ax.text(0.5, -0.1, 'Month', ha='center', va='center', transform=ax.transAxes)
 
-        ax.set_title(
-            f'Actual vs Predicted Average Monthly Temperature ({datetime.datetime.strptime(self.start_date, "%Y-%m-%d").date().year})')
+        ax.set_title(f'Actual vs Predicted Average Monthly Temperature')
         ax.set_xlabel('')
         ax.set_ylabel('Temperature (°C)')
         plt.tight_layout(rect=(0, 0, 1, 0.95))

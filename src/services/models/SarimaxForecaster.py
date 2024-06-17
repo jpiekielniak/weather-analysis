@@ -35,5 +35,4 @@ class SARIMAXForecaster(DateHelper):
         predicted_values = SARIMAXForecaster.forecast(model_fit=model_fit, forecast_steps=forecast_steps, start_date=forecast_start_date)
         predicted_values.name = f'Predicted {value_column_name}'
 
-        print(f'PREDICTION: {predicted_values}')
         return predicted_values
