@@ -3,10 +3,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from src.services.api.WeatherDataFetcher import WeatherDataFetcher
+from src.services.helpers.DateHelper import DateHelper
 from src.services.models.SarimaxForecaster import SARIMAXForecaster
 
 
-class ActualPredictedAverageMonthlyHumidity(SARIMAXForecaster, WeatherDataFetcher):
+class ActualPredictedAverageMonthlyHumidity(SARIMAXForecaster, WeatherDataFetcher, DateHelper):
     def __init__(self, latitude, longitude, start_date, end_date):
         super().__init__()
         self.latitude = latitude
@@ -17,23 +18,23 @@ class ActualPredictedAverageMonthlyHumidity(SARIMAXForecaster, WeatherDataFetche
         self.predicted_humidity_label = 'Predicted Monthly Humidity (%)'
 
     def generate_predicted_data(self, actual_data):
-        monthly_avg_humidity = actual_data.resample('M').mean()
+        extended_start_date = self.get_extended_start_date(self.start_date)
+
+        extended_data = self.fetch_humidity_data(extended_start_date, self.end_date)
+        monthly_avg_humidity = extended_data.resample('M').mean()
 
         model_fit = self.fit_sarima_model(monthly_avg_humidity['Humidity'])
 
-        forecast_steps = 12
-        forecast = model_fit.get_forecast(steps=forecast_steps)
-        forecast_index = pd.date_range(start=monthly_avg_humidity.index[-1] + pd.DateOffset(months=1),
-                                       periods=forecast_steps,
-                                       freq='M')
-        predicted_humidity = pd.Series(forecast.predicted_mean, index=forecast_index)
+        start_date = monthly_avg_humidity.index[-1] + pd.DateOffset(months=1)
+        predicted_humidity = self.forecast(model_fit=model_fit, start_date=start_date)
 
-        predicted_df = pd.concat([monthly_avg_humidity, predicted_humidity], axis=0)
+        actual_monthly_avg_humidity = actual_data.resample('M').mean()
+        predicted_df = pd.concat([actual_monthly_avg_humidity, predicted_humidity], axis=0)
         predicted_df.columns = ['Actual Humidity', 'Predicted Humidity']
         return predicted_df
 
     def plot_humidity_histogram(self):
-        df_actual = self.fetch_humidity_data()
+        df_actual = self.fetch_humidity_data(self.start_date, self.end_date)
         df_predicted = self.generate_predicted_data(df_actual)
 
         figure, ax = plt.subplots(figsize=(14, 8))
@@ -41,11 +42,13 @@ class ActualPredictedAverageMonthlyHumidity(SARIMAXForecaster, WeatherDataFetche
         width = 0.4
         x = np.arange(len(df_predicted.index))
 
-        ax.bar(x[:len(df_actual.resample('M').mean().index)] - width / 2,
-               df_actual.resample('M').mean()['Humidity'],
+        actual_monthly_avg = df_actual.resample('M').mean()
+
+        ax.bar(x[:len(actual_monthly_avg.index)] - width / 2,
+               actual_monthly_avg['Humidity'],
                width=width, edgecolor='black', label=self.actual_humidity_label, alpha=0.6, color='blue')
 
-        ax.bar(x[len(df_actual.resample('M').mean().index):] + width / 2,
+        ax.bar(x[len(actual_monthly_avg.index):] + width / 2,
                df_predicted['Predicted Humidity'].dropna(),
                width=width, edgecolor='black', label=self.predicted_humidity_label, alpha=0.6, color='lightblue')
 

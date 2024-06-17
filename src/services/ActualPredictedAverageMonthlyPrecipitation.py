@@ -2,10 +2,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from src.services.api.WeatherDataFetcher import WeatherDataFetcher
+from src.services.helpers.DateHelper import DateHelper
 from src.services.models.SarimaxForecaster import SARIMAXForecaster
 
 
-class ActualPredictedAverageMonthlyPrecipitation(SARIMAXForecaster, WeatherDataFetcher):
+class ActualPredictedAverageMonthlyPrecipitation(SARIMAXForecaster, WeatherDataFetcher, DateHelper):
 
     def __init__(self, latitude, longitude, start_date, end_date):
         super().__init__()
@@ -17,23 +18,23 @@ class ActualPredictedAverageMonthlyPrecipitation(SARIMAXForecaster, WeatherDataF
         self.predicted_precipitation_label = 'Predicted Monthly Precipitation (mm)'
 
     def generate_predicted_data(self, actual_data):
-        monthly_sum_precipitation = actual_data.resample('M').sum()
+        extended_start_date = self.get_extended_start_date(self.start_date)
+
+        extended_data = self.fetch_rainfall_data(extended_start_date, self.end_date)
+        monthly_sum_precipitation = extended_data.resample('M').sum()
 
         model_fit = self.fit_sarima_model(monthly_sum_precipitation['Precipitation'])
 
-        forecast_steps = 12
-        forecast = model_fit.get_forecast(steps=forecast_steps)
-        forecast_index = pd.date_range(start=monthly_sum_precipitation.index[-1] + pd.DateOffset(months=1),
-                                       periods=forecast_steps,
-                                       freq='M')
-        predicted_precipitation = pd.Series(forecast.predicted_mean, index=forecast_index)
+        start_date = monthly_sum_precipitation.index[-1] + pd.DateOffset(months=1)
+        predicted_precipitation = self.forecast(model_fit=model_fit, start_date=start_date)
 
-        predicted_df = pd.concat([monthly_sum_precipitation, predicted_precipitation], axis=0)
+        actual_monthly_sum_precipitation = actual_data.resample('M').sum()
+        predicted_df = pd.concat([actual_monthly_sum_precipitation, predicted_precipitation], axis=0)
         predicted_df.columns = ['Actual Precipitation', 'Predicted Precipitation']
         return predicted_df
 
     def plot_rainfall_histogram(self):
-        df_actual = self.fetch_rainfall_data()
+        df_actual = self.fetch_rainfall_data(self.start_date, self.end_date)
         df_predicted = self.generate_predicted_data(df_actual)
 
         figure, ax = plt.subplots(figsize=(14, 8))

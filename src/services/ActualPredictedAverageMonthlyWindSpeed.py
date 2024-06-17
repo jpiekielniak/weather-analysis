@@ -2,10 +2,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from src.services.api.WeatherDataFetcher import WeatherDataFetcher
+from src.services.helpers.DateHelper import DateHelper
 from src.services.models.SarimaxForecaster import SARIMAXForecaster
 
 
-class ActualPredictedAverageMonthlyWindSpeed(SARIMAXForecaster, WeatherDataFetcher):
+class ActualPredictedAverageMonthlyWindSpeed(SARIMAXForecaster, WeatherDataFetcher, DateHelper):
     def __init__(self, latitude, longitude, start_date, end_date):
         super().__init__()
         self.latitude = latitude
@@ -16,23 +17,23 @@ class ActualPredictedAverageMonthlyWindSpeed(SARIMAXForecaster, WeatherDataFetch
         self.predicted_wind_speed_label = 'Predicted Monthly Wind Speed (m/s)'
 
     def generate_predicted_data(self, actual_data):
-        monthly_avg_wind_speed = actual_data.resample('M').mean()
+        extended_start_date = self.get_extended_start_date(self.start_date)
+
+        extended_data = self.fetch_wind_speed_data(extended_start_date, self.end_date)
+        monthly_avg_wind_speed = extended_data.resample('M').mean()
 
         model_fit = self.fit_sarima_model(monthly_avg_wind_speed['WindSpeed'])
+        actual_monthly_avg_wind_speed = actual_data.resample('M').mean()
 
-        forecast_steps = 12
-        forecast = model_fit.get_forecast(steps=forecast_steps)
-        forecast_index = pd.date_range(start=monthly_avg_wind_speed.index[-1] + pd.DateOffset(months=1),
-                                       periods=forecast_steps,
-                                       freq='M')
-        predicted_wind_speed = pd.Series(forecast.predicted_mean, index=forecast_index)
+        start_date = actual_monthly_avg_wind_speed.index[-1] + pd.DateOffset(months=1)
+        predicted_wind_speed = self.forecast(model_fit=model_fit, start_date=start_date)
 
-        predicted_df = pd.concat([monthly_avg_wind_speed, predicted_wind_speed], axis=0)
+        predicted_df = pd.concat([actual_monthly_avg_wind_speed, predicted_wind_speed], axis=0)
         predicted_df.columns = ['Actual Wind Speed', 'Predicted Wind Speed']
         return predicted_df
 
     def plot_wind_speed_histogram(self):
-        df_actual = self.fetch_wind_speed_data()
+        df_actual = self.fetch_wind_speed_data(self.start_date, self.end_date)
         df_predicted = self.generate_predicted_data(df_actual)
 
         figure, ax = plt.subplots(figsize=(14, 8))

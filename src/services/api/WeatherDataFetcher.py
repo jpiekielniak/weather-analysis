@@ -5,8 +5,6 @@ import requests
 class WeatherDataFetcher:
 
     def __init__(self):
-        self.start_date = None
-        self.end_date = None
         self.latitude = None
         self.longitude = None
 
@@ -26,8 +24,8 @@ class WeatherDataFetcher:
         df.set_index('Timestamp', inplace=True)
         return df
 
-    def fetch_wind_speed_data(self):
-        url = f"https://archive-api.open-meteo.com/v1/era5?latitude={self.latitude}&longitude={self.longitude}&start_date={self.start_date}&end_date={self.end_date}&hourly=windspeed_10m"
+    def fetch_wind_speed_data(self, start_date, end_date):
+        url = f"https://archive-api.open-meteo.com/v1/era5?latitude={self.latitude}&longitude={self.longitude}&start_date={start_date}&end_date={end_date}&hourly=windspeed_10m"
         response = requests.get(url)
         data = response.json()
 
@@ -42,8 +40,8 @@ class WeatherDataFetcher:
         df.set_index('Timestamp', inplace=True)
         return df
 
-    def fetch_humidity_data(self):
-        url = f"https://archive-api.open-meteo.com/v1/era5?latitude={self.latitude}&longitude={self.longitude}&start_date={self.start_date}&end_date={self.end_date}&hourly=relative_humidity_2m"
+    def fetch_humidity_data(self, start_date, end_date):
+        url = f"https://archive-api.open-meteo.com/v1/era5?latitude={self.latitude}&longitude={self.longitude}&start_date={start_date}&end_date={end_date}&hourly=relative_humidity_2m"
         response = requests.get(url)
         data = response.json()
 
@@ -58,8 +56,8 @@ class WeatherDataFetcher:
         df.set_index('Timestamp', inplace=True)
         return df
 
-    def fetch_rainfall_data(self):
-        url = f"https://archive-api.open-meteo.com/v1/archive?latitude={self.latitude}&longitude={self.longitude}&start_date={self.start_date}&end_date={self.end_date}&hourly=precipitation"
+    def fetch_rainfall_data(self, start_date, end_date):
+        url = f"https://archive-api.open-meteo.com/v1/archive?latitude={self.latitude}&longitude={self.longitude}&start_date={start_date}&end_date={end_date}&hourly=precipitation"
         response = requests.get(url)
         data = response.json()
 
