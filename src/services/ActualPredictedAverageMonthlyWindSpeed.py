@@ -1,65 +1,19 @@
-import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from statsmodels.tsa.statespace.sarimax import SARIMAX
-import itertools
+from src.services.api.WeatherDataFetcher import WeatherDataFetcher
+from src.services.models.SarimaxForecaster import SARIMAXForecaster
 
 
-class ActualPredictedAverageMonthlyWindSpeed:
+class ActualPredictedAverageMonthlyWindSpeed(SARIMAXForecaster, WeatherDataFetcher):
     def __init__(self, latitude, longitude, start_date, end_date):
+        super().__init__()
         self.latitude = latitude
         self.longitude = longitude
         self.start_date = start_date
         self.end_date = end_date
         self.actual_wind_speed_label = 'Actual Monthly Wind Speed (m/s)'
         self.predicted_wind_speed_label = 'Predicted Monthly Wind Speed (m/s)'
-
-    def fetch_wind_speed_data(self):
-        url = f"https://archive-api.open-meteo.com/v1/era5?latitude={self.latitude}&longitude={self.longitude}&start_date={self.start_date}&end_date={self.end_date}&hourly=windspeed_10m"
-        response = requests.get(url)
-        data = response.json()
-
-        timestamps = data['hourly']['time']
-        wind_speeds = data['hourly']['windspeed_10m']
-
-        df = pd.DataFrame({
-            'Timestamp': pd.to_datetime(timestamps),
-            'WindSpeed': wind_speeds
-        })
-
-        df.set_index('Timestamp', inplace=True)
-        return df
-
-    @staticmethod
-    def fit_sarima_model(time_series):
-        p = d = q = range(0, 2)
-        pdq = list(itertools.product(p, d, q))
-        seasonal_pdq = [(x[0], x[1], x[2], 12) for x in pdq]
-
-        best_aic = float("inf")
-        best_pdq = None
-        best_seasonal_pdq = None
-        best_model = None
-
-        for param in pdq:
-            for param_seasonal in seasonal_pdq:
-                try:
-                    temp_model = SARIMAX(time_series,
-                                         order=param,
-                                         seasonal_order=param_seasonal,
-                                         enforce_stationarity=False,
-                                         enforce_invertibility=False)
-                    temp_model_fit = temp_model.fit(disp=False)
-                    if temp_model_fit.aic < best_aic:
-                        best_aic = temp_model_fit.aic
-                        best_pdq = param
-                        best_seasonal_pdq = param_seasonal
-                        best_model = temp_model_fit
-                except:
-                    continue
-
-        return best_model
 
     def generate_predicted_data(self, actual_data):
         monthly_avg_wind_speed = actual_data.resample('M').mean()
@@ -68,7 +22,8 @@ class ActualPredictedAverageMonthlyWindSpeed:
 
         forecast_steps = 12
         forecast = model_fit.get_forecast(steps=forecast_steps)
-        forecast_index = pd.date_range(start=monthly_avg_wind_speed.index[-1] + pd.DateOffset(months=1), periods=forecast_steps,
+        forecast_index = pd.date_range(start=monthly_avg_wind_speed.index[-1] + pd.DateOffset(months=1),
+                                       periods=forecast_steps,
                                        freq='M')
         predicted_wind_speed = pd.Series(forecast.predicted_mean, index=forecast_index)
 
