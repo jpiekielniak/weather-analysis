@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
+import pandas as pd
 from src.services.api.WeatherDataFetcher import WeatherDataFetcher
 from src.services.helpers.DateHelper import DateHelper
 from src.services.models.SarimaxForecaster import SARIMAXForecaster
@@ -16,9 +16,8 @@ class ActualPredictedAverageMonthlyHumidity(SARIMAXForecaster, WeatherDataFetche
         self.actual_humidity_label = 'Actual Monthly Humidity (%)'
         self.predicted_humidity_label = 'Predicted Monthly Humidity (%)'
 
-    def generate_predicted_data(self, actual_data):
+    def generate_predicted_data(self):
         return self.generate_predicted_data_generic(
-            actual_data=actual_data,
             fetch_data_func=self.fetch_humidity_data,
             value_column_name='Humidity',
             start_date=self.start_date,
@@ -26,31 +25,46 @@ class ActualPredictedAverageMonthlyHumidity(SARIMAXForecaster, WeatherDataFetche
         )
 
     def plot_humidity_histogram(self):
-        df_actual = self.fetch_humidity_data(start_date=self.start_date, end_date=self.end_date)
-        combined_df = self.generate_predicted_data(df_actual)
+        df_actual = self.fetch_humidity_data(self.start_date, self.end_date)
+        df_predicted = self.generate_predicted_data()
+
+        df_combined = self.combine_actual_predicted(df_actual, df_predicted, 'Humidity')
+
+        print("Combined DataFrame:\n", df_combined)
 
         figure, ax = plt.subplots(figsize=(14, 8))
 
         width = 0.4
-        x = np.arange(len(combined_df.index))
+        x = np.arange(len(df_combined.index))
 
-        actual_monthly_avg = df_actual.resample('M').mean()
+        ax.bar(x - width / 2,
+               df_combined['Actual Humidity'],
+               width=width, edgecolor='black', label=self.actual_humidity_label, alpha=0.6, color='red')
 
-        ax.bar(x[:len(actual_monthly_avg.index)] - width / 2,
-               combined_df['Actual Humidity'].dropna(),
-               width=width, edgecolor='black', label=self.actual_humidity_label, alpha=0.6, color='blue')
-
-        ax.bar(x[len(actual_monthly_avg.index):] + width / 2,
-               combined_df['Predicted Humidity'].dropna(),
-               width=width, edgecolor='black', label=self.predicted_humidity_label, alpha=0.6, color='lightblue')
+        ax.bar(x + width / 2,
+               df_combined['Predicted Humidity'],
+               width=width, edgecolor='black', label=self.predicted_humidity_label, alpha=0.6, color='green')
 
         ax.set_title('Histogram of Actual and Predicted Monthly Humidity')
         ax.set_xlabel('Date')
         ax.set_ylabel('Monthly Humidity (%)')
         ax.set_xticks(ticks=x)
-        ax.set_xticklabels([date.strftime('%Y-%m') for date in combined_df.index], rotation=45)
+        ax.set_xticklabels([date.strftime('%Y-%m') for date in df_combined.index], rotation=45)
         ax.legend()
         ax.grid(True)
         plt.tight_layout()
 
         return figure
+
+    def combine_actual_predicted(self, actual_data, predicted_data, value_column_name):
+        actual_monthly_avg = actual_data.resample('M').mean()
+        predicted_monthly_avg = pd.DataFrame(predicted_data, columns=[f'Predicted {value_column_name}'])
+
+        # Debugging: Print actual and predicted data to ensure they are correctly processed
+        print("Actual Monthly Average:\n", actual_monthly_avg)
+        print("Predicted Monthly Average:\n", predicted_monthly_avg)
+
+        df_combined = pd.concat([actual_monthly_avg[value_column_name], predicted_monthly_avg], axis=1)
+        df_combined.columns = [f'Actual {value_column_name}', f'Predicted {value_column_name}']
+        df_combined = df_combined[self.start_date:self.end_date]
+        return df_combined

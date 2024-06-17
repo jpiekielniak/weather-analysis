@@ -1,3 +1,4 @@
+import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from src.services.api.WeatherDataFetcher import WeatherDataFetcher
@@ -28,29 +29,36 @@ class ActualPredictedAverageMonthlyWindSpeed(SARIMAXForecaster, WeatherDataFetch
         df_actual = self.fetch_wind_speed_data(self.start_date, self.end_date)
         combined_df = self.generate_predicted_data(df_actual)
 
+        df_combined = self.combine_actual_predicted(df_actual, combined_df, 'WindSpeed')
+
         figure, ax = plt.subplots(figsize=(14, 8))
 
         width = 0.4
-        x = np.arange(len(combined_df.index))
+        x = np.arange(len(df_combined.index))
 
-        actual_months = df_actual.resample('M').mean().index
-        predicted_months = combined_df.index[len(actual_months):]
-
-        ax.bar(x[:len(actual_months)] - width / 2,
-               combined_df['Actual WindSpeed'].dropna(),
+        ax.bar(x - width / 2,
+               df_combined['Actual WindSpeed'],
                width=width, edgecolor='black', label=self.actual_wind_speed_label, alpha=0.6, color='darkgreen')
 
-        ax.bar(x[len(actual_months):] + width / 2,
-               combined_df['Predicted WindSpeed'].dropna(),
+        ax.bar(x + width / 2,
+               combined_df,
                width=width, edgecolor='black', label=self.predicted_wind_speed_label, alpha=0.6, color='lime')
 
         ax.set_title('Histogram of Actual and Predicted Monthly Wind Speed')
         ax.set_xlabel('Date')
         ax.set_ylabel('Monthly Wind Speed (m/s)')
         ax.set_xticks(ticks=x)
-        ax.set_xticklabels([date.strftime('%Y-%m') for date in combined_df.index], rotation=45)
+        ax.set_xticklabels([date.strftime('%Y-%m') for date in df_combined.index], rotation=45)
         ax.legend()
         ax.grid(True)
         plt.tight_layout()
 
         return figure
+
+    def combine_actual_predicted(self, actual_data, predicted_data, value_column_name):
+        actual_monthly_avg = actual_data.resample('M').sum()
+        predicted_data_avg = predicted_data.resample('M').sum()
+        df_combined = pd.concat([actual_monthly_avg[value_column_name], predicted_data_avg], axis=1)
+        df_combined.columns = [f'Actual {value_column_name}', f'Predicted {value_column_name}']
+        df_combined = df_combined[self.start_date:self.end_date]
+        return df_combined
