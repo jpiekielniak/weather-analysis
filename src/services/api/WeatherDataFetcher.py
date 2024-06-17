@@ -57,7 +57,7 @@ class WeatherDataFetcher:
         return df
 
     def fetch_rainfall_data(self, start_date, end_date):
-        url = f"https://archive-api.open-meteo.com/v1/archive?latitude={self.latitude}&longitude={self.longitude}&start_date={start_date}&end_date={end_date}&hourly=precipitation"
+        url = f"https://archive-api.open-meteo.com/v1/archive?latitude={self.latitude}&longitude={self.longitude}&start_date={self.start_date}&end_date={self.end_date}&hourly=precipitation"
         response = requests.get(url)
         data = response.json()
 
